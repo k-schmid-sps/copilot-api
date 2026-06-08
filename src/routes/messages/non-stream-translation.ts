@@ -29,12 +29,14 @@ import { mapOpenAIStopReasonToAnthropic } from "./utils"
 export function translateToOpenAI(
   payload: AnthropicMessagesPayload,
 ): ChatCompletionsPayload {
+  const messages = translateAnthropicMessagesToOpenAI(
+    payload.messages,
+    payload.system,
+  )
+  fixTrailingAssistantPrefill(messages)
   return {
     model: translateModelName(payload.model),
-    messages: translateAnthropicMessagesToOpenAI(
-      payload.messages,
-      payload.system,
-    ),
+    messages,
     max_tokens: payload.max_tokens,
     stop: payload.stop_sequences,
     stream: payload.stream,
@@ -44,6 +46,55 @@ export function translateToOpenAI(
     tools: translateAnthropicToolsToOpenAI(payload.tools),
     tool_choice: translateAnthropicToolChoiceToOpenAI(payload.tool_choice),
   }
+}
+
+// Some Copilot upstream models reject a request whose message list ends with
+// an assistant turn ("assistant message prefill"), responding with a 400:
+//   "This model does not support assistant message prefill. The conversation
+//    must end with a user message."
+// Anthropic clients (e.g. Claude Code) legitimately use prefill to constrain a
+// reply. To stay compatible we drop the trailing assistant prefill and re-add
+// it as a user instruction asking the model to emit only the continuation,
+// reproducing Anthropic's prefill contract (the response excludes the prefill).
+function fixTrailingAssistantPrefill(messages: Array<Message>): void {
+  const last = messages.at(-1)
+  if (!last || last.role !== "assistant") {
+    return
+  }
+  // A trailing tool call is part of an in-flight tool exchange, not a prefill.
+  if ("tool_calls" in last && last.tool_calls && last.tool_calls.length > 0) {
+    return
+  }
+
+  const prefill = extractAssistantText(last.content)
+
+  messages.pop()
+
+  if (prefill.trim().length === 0) {
+    messages.push({ role: "user", content: "Continue." })
+    return
+  }
+
+  messages.push({
+    role: "user",
+    content:
+      "You have already begun your reply with the text below. Do not repeat"
+      + " it and do not add any preamble: output only the text that continues"
+      + ` seamlessly from it.\n\n--- Your reply so far ---\n${prefill}`,
+  })
+}
+
+function extractAssistantText(content: Message["content"]): string {
+  if (typeof content === "string") {
+    return content
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter((part): part is TextPart => part.type === "text")
+      .map((part) => part.text)
+      .join("")
+  }
+  return ""
 }
 
 function translateModelName(model: string): string {
