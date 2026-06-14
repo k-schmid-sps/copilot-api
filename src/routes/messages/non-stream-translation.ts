@@ -98,13 +98,11 @@ function extractAssistantText(content: Message["content"]): string {
 }
 
 function translateModelName(model: string): string {
-  // Subagent requests use a specific model number which Copilot doesn't support
-  if (model.startsWith("claude-sonnet-4-")) {
-    return model.replace(/^claude-sonnet-4-.*/, "claude-sonnet-4")
-  } else if (model.startsWith("claude-opus-")) {
-    return model.replace(/^claude-opus-4-.*/, "claude-opus-4")
-  }
-  return model
+  // Copilot exposes Claude models with dotted minor versions (e.g.
+  // "claude-opus-4.8"), while Anthropic clients (Claude Code) send dashed IDs
+  // ("claude-opus-4-8"). Rewrite the trailing "-N" minor version to ".N" so the
+  // requested model resolves. Mirrors upstream copilot-api normalization.
+  return model.replace(/^(claude-(?:opus|sonnet|haiku)-\d+)-(\d+)/, "$1.$2")
 }
 
 function translateAnthropicMessagesToOpenAI(
