@@ -1,4 +1,4 @@
-import { test, expect, mock } from "bun:test"
+import { test, expect, vi } from "vitest"
 
 import type { ChatCompletionsPayload } from "../src/services/copilot/create-chat-completions"
 
@@ -11,7 +11,7 @@ state.vsCodeVersion = "1.0.0"
 state.accountType = "individual"
 
 // Helper to mock fetch
-const fetchMock = mock(
+const fetchMock = vi.fn(
   (_url: string, opts: { headers: Record<string, string> }) => {
     return {
       ok: true,

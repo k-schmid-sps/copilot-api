@@ -46,7 +46,7 @@ https://github.com/user-attachments/assets/7654b383-669d-4eb9-b23c-06d7aefee8c5
 
 ## Prerequisites
 
-- Bun (>= 1.2.x)
+- Node.js (>= 22.18.0)
 - GitHub account with Copilot subscription (individual, business, or enterprise)
 
 ## Installation
@@ -54,7 +54,7 @@ https://github.com/user-attachments/assets/7654b383-669d-4eb9-b23c-06d7aefee8c5
 To install dependencies, run:
 
 ```sh
-bun install
+npm install
 ```
 
 ## Using with Docker
@@ -333,13 +333,14 @@ The project can be run from source in several ways:
 ### Development Mode
 
 ```sh
-bun run dev
+npm run dev
 ```
 
 ### Production Mode
 
 ```sh
-bun run start
+npm run build
+npm start
 ```
 
 ## Usage Tips
