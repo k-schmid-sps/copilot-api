@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@echristian/eslint-config": "^0.0.54",
+    "@types/bun": "^1.2.23",
     "@types/proxy-from-env": "^1.0.4",
     "bumpp": "^10.2.3",
     "eslint": "^9.37.0",
