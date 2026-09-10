@@ -3,7 +3,7 @@
 import { defineCommand } from "citty"
 import clipboard from "clipboardy"
 import consola from "consola"
-import { serve, type ServerHandler } from "srvx"
+import { serve } from "srvx"
 import invariant from "tiny-invariant"
 
 import { ensurePaths } from "./lib/paths"
@@ -115,7 +115,7 @@ export async function runServer(options: RunServerOptions): Promise<void> {
   )
 
   serve({
-    fetch: server.fetch as ServerHandler,
+    fetch: server.fetch,
     port: options.port,
   })
 }

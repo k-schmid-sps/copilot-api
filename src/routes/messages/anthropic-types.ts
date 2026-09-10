@@ -59,14 +59,10 @@ export interface AnthropicThinkingBlock {
 }
 
 export type AnthropicUserContentBlock =
-  | AnthropicTextBlock
-  | AnthropicImageBlock
-  | AnthropicToolResultBlock
+  AnthropicTextBlock | AnthropicImageBlock | AnthropicToolResultBlock
 
 export type AnthropicAssistantContentBlock =
-  | AnthropicTextBlock
-  | AnthropicToolUseBlock
-  | AnthropicThinkingBlock
+  AnthropicTextBlock | AnthropicToolUseBlock | AnthropicThinkingBlock
 
 export interface AnthropicUserMessage {
   role: "user"

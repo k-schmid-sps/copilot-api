@@ -21,9 +21,6 @@
   "files": [
     "dist"
   ],
-  "engines": {
-    "node": ">=22.18.0"
-  },
   "scripts": {
     "build": "tsdown",
     "dev": "tsx watch src/main.ts",
@@ -70,5 +67,8 @@
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }
