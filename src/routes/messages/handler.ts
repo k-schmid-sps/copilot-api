@@ -1,7 +1,7 @@
 import type { Context } from "hono"
 
 import consola from "consola"
-import { streamSSE } from "hono/streaming"
+import { stream, streamSSE } from "hono/streaming"
 
 import { awaitApproval } from "~/lib/approval"
 import { checkRateLimit } from "~/lib/rate-limit"
@@ -82,19 +82,28 @@ async function handleNativeAnthropic(
   c.header("Cache-Control", "no-cache")
   c.header("Connection", "keep-alive")
 
-  // Pipe the upstream SSE response body directly to the client
   if (!response.body) {
     return c.text("No response body", 500)
   }
 
-  return new Response(response.body, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
+  // Pipe the upstream SSE response body through Hono's managed stream
+  // lifecycle rather than returning the raw ReadableStream directly: a raw
+  // `new Response(response.body, ...)` leaves a mid-stream upstream failure
+  // (e.g. a dropped Copilot connection) completely outside our error
+  // handling - it never gets logged, and the client just sees the
+  // connection die (ECONNRESET). stream()'s onError callback ensures we at
+  // least log it and close the connection cleanly instead.
+  const upstreamBody = response.body
+  return stream(
+    c,
+    async (s) => {
+      await s.pipe(upstreamBody)
     },
-  })
+    // eslint-disable-next-line @typescript-eslint/require-await -- stream()'s onError must return a Promise
+    async (err) => {
+      consola.error("Native Anthropic stream failed:", err)
+    },
+  )
 }
 
 /**
