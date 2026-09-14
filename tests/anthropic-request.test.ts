@@ -264,6 +264,29 @@ describe("Anthropic to OpenAI translation logic", () => {
   })
 })
 
+describe("model name translation", () => {
+  test.each([
+    ["claude-opus-4-8", "claude-opus-4.8"],
+    ["claude-sonnet-4-6", "claude-sonnet-4.6"],
+    ["claude-opus-4-7-20250514", "claude-opus-4.7"],
+    ["claude-opus-4-1-20250805", "claude-opus-4.1"],
+    ["claude-haiku-4-5-20251001", "claude-haiku-4.5"],
+    ["claude-sonnet-4-20250514", "claude-sonnet-4"],
+    ["claude-opus-4-20250514", "claude-opus-4"],
+    ["claude-opus-4.8", "claude-opus-4.8"],
+    ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-20241022"],
+    ["gpt-4o", "gpt-4o"],
+  ])("translates %s to %s", (input, expected) => {
+    const anthropicPayload: AnthropicMessagesPayload = {
+      model: input,
+      messages: [{ role: "user", content: "Hello!" }],
+      max_tokens: 100,
+    }
+    const openAIPayload = translateToOpenAI(anthropicPayload)
+    expect(openAIPayload.model).toBe(expected)
+  })
+})
+
 describe("OpenAI Chat Completion v1 Request Payload Validation with Zod", () => {
   test("should return true for a minimal valid request payload", () => {
     const validPayload = {
