@@ -117,6 +117,16 @@ export async function runServer(options: RunServerOptions): Promise<void> {
   serve({
     fetch: server.fetch as ServerHandler,
     port: options.port,
+    // Bun's HTTP server defaults idleTimeout to 10s. Anthropic-API clients
+    // (Claude Code) pool/reuse keep-alive connections across requests, and
+    // interactive sessions routinely idle longer than that between turns -
+    // once the server-side timeout fires, the client's next request lands
+    // on a socket the server already closed, which surfaces client-side as
+    // an unexplained ECONNRESET with nothing logged here (the connection
+    // never got far enough to reach Hono's request logger). Raise it well
+    // past any realistic think-time; 255s is the historical max Bun
+    // accepted for this option.
+    bun: { idleTimeout: 255 },
   })
 }
 
