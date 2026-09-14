@@ -97,7 +97,7 @@ function extractAssistantText(content: Message["content"]): string {
   return ""
 }
 
-function translateModelName(model: string): string {
+export function translateModelName(model: string): string {
   // Copilot exposes Claude models with dotted minor versions (e.g.
   // "claude-opus-4.8"), while Anthropic clients (Claude Code) send dashed IDs
   // ("claude-opus-4-8"), sometimes with a trailing dated snapshot

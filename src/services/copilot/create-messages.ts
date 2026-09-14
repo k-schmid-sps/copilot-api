@@ -4,12 +4,18 @@ import { copilotHeaders, copilotBaseUrl } from "~/lib/api-config"
 import { HTTPError } from "~/lib/error"
 import { state } from "~/lib/state"
 
+export interface AnthropicPassthroughHeaders {
+  anthropicBeta?: string
+  anthropicVersion?: string
+}
+
 /**
  * Send an Anthropic /v1/messages request directly to the Copilot native endpoint.
  * For Claude models, this avoids the OpenAI translation layer entirely.
  */
 export const createMessages = async (
   payload: Record<string, unknown>,
+  passthroughHeaders: AnthropicPassthroughHeaders = {},
 ): Promise<Response> => {
   if (!state.copilotToken) throw new Error("Copilot token not found")
 
@@ -20,6 +26,16 @@ export const createMessages = async (
   const headers: Record<string, string> = {
     ...copilotHeaders(state, enableVision),
     "X-Initiator": isAgentCall ? "agent" : "user",
+  }
+
+  // This is a genuine Anthropic-shaped passthrough, so honor the client's own
+  // Anthropic-native headers (e.g. `anthropic-beta: context-1m-2025-08-07` to
+  // opt into the long-context tier) rather than dropping them.
+  if (passthroughHeaders.anthropicBeta) {
+    headers["anthropic-beta"] = passthroughHeaders.anthropicBeta
+  }
+  if (passthroughHeaders.anthropicVersion) {
+    headers["anthropic-version"] = passthroughHeaders.anthropicVersion
   }
 
   const url = `${copilotBaseUrl(state)}/v1/messages`

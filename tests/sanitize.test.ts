@@ -27,20 +27,23 @@ describe("isClaudeModel", () => {
 
 describe("sanitizePayload", () => {
   describe("model name normalization", () => {
-    test("normalizes claude-sonnet-4-* to claude-sonnet-4", () => {
+    // Delegates to translateModelName() (non-stream-translation.ts), the
+    // same function the OpenAI translation path uses, so dotted Copilot IDs
+    // and dated snapshots resolve identically on both paths.
+    test("normalizes dashed minor versions to dotted Copilot IDs", () => {
       const result = sanitizePayload({
         ...basePayload,
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
       })
-      expect(result.model).toBe("claude-sonnet-4")
+      expect(result.model).toBe("claude-sonnet-4.6")
     })
 
-    test("normalizes claude-opus-4-* to claude-opus-4", () => {
+    test("strips a dated snapshot suffix before dotting", () => {
       const result = sanitizePayload({
         ...basePayload,
-        model: "claude-opus-4-20250514",
+        model: "claude-opus-4-7-20250514",
       })
-      expect(result.model).toBe("claude-opus-4")
+      expect(result.model).toBe("claude-opus-4.7")
     })
 
     test("preserves models without version suffixes", () => {
@@ -65,7 +68,7 @@ describe("sanitizePayload", () => {
       } as AnthropicMessagesPayload & { context_management: unknown }
       const result = sanitizePayload(payload)
       expect(
-        (result as Record<string, unknown>).context_management,
+        (result as unknown as Record<string, unknown>).context_management,
       ).toBeUndefined()
     })
   })
@@ -79,20 +82,14 @@ describe("sanitizePayload", () => {
       expect(result.thinking).toEqual({ type: "enabled" })
     })
 
-    test("converts enabled to adaptive for opus models", () => {
+    test("preserves thinking type for opus models", () => {
+      // Opus 5 natively supports adaptive_thinking and a full
+      // reasoning_effort range (low/medium/high/xhigh/max) per Copilot's own
+      // model catalog, so this no longer forces "adaptive"/"medium".
       const result = sanitizePayload({
         ...basePayload,
-        model: "claude-opus-4-20250514",
+        model: "claude-opus-5",
         thinking: { type: "enabled", budget_tokens: 5000 },
-      })
-      expect(result.thinking).toEqual({ type: "adaptive" })
-    })
-
-    test("preserves thinking type for non-opus models", () => {
-      const result = sanitizePayload({
-        ...basePayload,
-        model: "claude-sonnet-4",
-        thinking: { type: "enabled" },
       })
       expect(result.thinking).toEqual({ type: "enabled" })
     })
@@ -126,21 +123,21 @@ describe("sanitizePayload", () => {
 
   describe("tool_reference filtering", () => {
     test("filters tool_reference blocks from messages", () => {
-      const result = sanitizePayload({
+      const payload = {
         ...basePayload,
         messages: [
           {
             role: "user",
             content: [
               { type: "text", text: "Hello" },
-              {
-                type: "tool_reference" as "text",
-                tool_use_id: "abc",
-              },
+              { type: "tool_reference", tool_use_id: "abc" },
             ],
           },
         ],
-      })
+      }
+      const result = sanitizePayload(
+        payload as unknown as AnthropicMessagesPayload,
+      )
       const content = result.messages[0].content as Array<{ type: string }>
       expect(content).toHaveLength(1)
       expect(content[0].type).toBe("text")
@@ -155,29 +152,21 @@ describe("sanitizePayload", () => {
     })
   })
 
-  describe("output_config normalization for opus", () => {
-    test("normalizes non-medium effort to medium for opus", () => {
+  describe("output_config", () => {
+    test("does not rewrite effort for opus models", () => {
+      // Opus 5 supports the full low/medium/high/xhigh/max range natively;
+      // forcing "medium" here was a workaround for an older, more limited
+      // Opus model and no longer applies.
       const payload = {
         ...basePayload,
-        model: "claude-opus-4-20250514",
-        output_config: { effort: "high" },
+        model: "claude-opus-5",
+        output_config: { effort: "xhigh" },
       } as unknown as AnthropicMessagesPayload
       const result = sanitizePayload(payload)
-      expect((result as Record<string, unknown>).output_config).toEqual({
-        effort: "medium",
-      })
-    })
-
-    test("does not modify medium effort for opus", () => {
-      const payload = {
-        ...basePayload,
-        model: "claude-opus-4-20250514",
-        output_config: { effort: "medium" },
-      } as unknown as AnthropicMessagesPayload
-      const result = sanitizePayload(payload)
-      // effort is already medium, so it should not be modified
-      expect((result as Record<string, unknown>).output_config).toEqual({
-        effort: "medium",
+      expect(
+        (result as unknown as Record<string, unknown>).output_config,
+      ).toEqual({
+        effort: "xhigh",
       })
     })
   })

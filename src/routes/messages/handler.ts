@@ -59,7 +59,10 @@ async function handleNativeAnthropic(
   )
   consola.debug("Sanitized payload:", JSON.stringify(sanitized).slice(0, 500))
 
-  const response = await createMessages(sanitized)
+  const response = await createMessages(sanitized, {
+    anthropicBeta: c.req.header("anthropic-beta"),
+    anthropicVersion: c.req.header("anthropic-version"),
+  })
 
   if (!payload.stream) {
     // Non-streaming: Copilot returns Anthropic JSON directly
