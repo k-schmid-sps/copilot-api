@@ -48,11 +48,10 @@ export const createMessages = async (
   })
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => "")
     consola.error(
       "Failed to create native messages",
       response.status,
-      errorBody,
+      response.statusText,
     )
     throw new HTTPError("Failed to create native messages", response)
   }
